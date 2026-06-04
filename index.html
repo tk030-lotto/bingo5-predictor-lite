@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビンゴ5予想システムライト | 構造解析・多重指標合議版</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #060608;
+            --card: rgba(16, 16, 20, 0.85);
+            --card-sub: rgba(22, 22, 32, 0.9);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(168, 85, 247, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            
+            --purple: #a855f7;
+            --purple-glow: rgba(168, 85, 247, 0.3);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245, 158, 11, 0.2);
+            
+            --exclude: #ef4444;
+            --exclude-glow: rgba(239, 68, 68, 0.2);
+            --survive: #10b981;
+            --survive-glow: rgba(16, 185, 129, 0.2);
+            
+            --success: #10b981;
+            --fail: #ef4444;
+            --blue: #3b82f6;
+            --blue-glow: rgba(59, 130, 246, 0.2);
+            
+            --gold: #fbbf24;
+            --gold-glow: rgba(251, 191, 36, 0.4);
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* アプリコンテナ */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 24px 16px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: 1.5px;
+            background: linear-gradient(135deg, #ffffff 40%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        header .subtitle {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            margin-top: 6px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        /* タブコンテナ */
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            gap: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            color: var(--purple);
+            border-bottom: 2px solid var(--purple);
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+        }
+
+        /* カード共通 */
+        .flow-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .flow-card.accent-border {
+            border-color: var(--purple);
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 3x3 排除ビンゴボード */
+        .bingo-board-3x3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .bingo-grid-cell {
+            background: var(--card-sub);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 110px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .bingo-grid-cell.center-cell {
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(6, 6, 8, 0.5) 100%);
+            border-color: rgba(168, 85, 247, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: var(--purple);
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px var(--purple-glow);
+            letter-spacing: 2px;
+        }
+
+        .cell-header {
+            font-size: 0.62rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 3px;
+        }
+
+        .cell-nums {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            flex-grow: 1;
+            align-content: center;
+        }
+
+        .cell-num-btn {
+            aspect-ratio: 0.85 / 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: rgba(255,255,255,0.01);
+            border: 1px solid var(--border);
+            font-size: 0.65rem;
+            font-weight: 900;
+            color: var(--text-main);
+            position: relative;
+        }
+
+        .cell-num-btn .num-ema-p {
+            font-size: 0.35rem;
+            color: var(--text-muted);
+            font-weight: normal;
+            transform: scale(0.8);
+            margin-top: 1px;
+            line-height: 1;
+        }
+
+        .cell-num-btn:hover {
+            border-color: var(--purple);
+            transform: scale(1.08);
+            z-index: 5;
+        }
+
+        .cell-num-btn.excluded {
+            background: rgba(239, 68, 68, 0.03) !important;
+            border-color: rgba(239, 68, 68, 0.15) !important;
+            color: #4b4b5a !important;
+            text-decoration: line-through;
+        }
+        .cell-num-btn.excluded .num-ema-p {
+            color: rgba(239, 68, 68, 0.2) !important;
+        }
+
+        .cell-num-btn.hot-num {
+            background: rgba(168, 85, 247, 0.06);
+            border-color: rgba(168, 85, 247, 0.25);
+            color: #d8b4fe;
+        }
+
+        /* 設定パネル */
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+        
+        .settings-content {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .setting-inputs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .setting-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #fff;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .setting-input:focus {
+            border-color: var(--purple);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .checkbox-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            font-weight: 700;
+        }
+
+        .checkbox-btn.checked {
+            background: var(--purple-glow);
+            border-color: var(--purple);
+            color: #d8b4fe;
+        }
+
+        /* メインボタン */
+        .btn-main {
+            width: 100%;
+            background: linear-gradient(135deg, var(--purple), #6b21a8);
+            color: #fff;
+            border: none;
+            padding: 15px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 4px 15px var(--purple-glow);
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .btn-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn-sub {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-sub:hover {
+            border-color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* 結果用ミニビンゴボード */
+        .pred-board-mini {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .pred-cell-mini {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1.5px solid var(--purple);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: #d8b4fe;
+            box-shadow: 0 0 6px rgba(168, 85, 247, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pred-cell-mini.center-cell {
+            background: rgba(168, 85, 247, 0.1);
+            color: var(--purple);
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        /* ビンゴ成立ラインの発光エフェクト */
+        .pred-cell-mini.bingo-hit {
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.25) 0%, rgba(251, 191, 36, 0.05) 100%) !important;
+            border-color: var(--gold) !important;
+            color: #fff !important;
+            text-shadow: 0 0 8px var(--gold-glow);
+            box-shadow: 0 0 12px var(--gold-glow) !important;
+            animation: pulse-gold 2.0s infinite alternate;
+        }
+
+        @keyframes pulse-gold {
+            0% {
+                box-shadow: 0 0 6px var(--gold-glow);
+                border-color: rgba(251, 191, 36, 0.7);
+            }
+            100% {
+                box-shadow: 0 0 16px rgba(251, 191, 36, 0.7);
+                border-color: var(--gold);
+            }
+        }
+
+        .prediction-item {
+            background: var(--card-sub);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            transition: border-color 0.2s;
+        }
+        
+        .prediction-item:hover {
+            border-color: rgba(168, 85, 247, 0.2);
+        }
+
+        .prediction-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* バックテスト統計 */
+        .backtest-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .bt-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .bt-card .bt-lbl {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+        .bt-card .bt-val {
+            font-size: 1.25rem;
+            font-weight: 900;
+            margin-top: 4px;
+        }
+
+        .bt-log-container {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            font-size: 0.7rem;
+            padding: 10px;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .bt-log-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.01);
+        }
+        
+        .badge {
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+        }
+        .badge.straight {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        .badge.captured {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .badge.missed {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar-fill {
+            background: var(--purple);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .footer-note {
+            text-align: center;
+            color: #20202d;
+            font-size: 0.65rem;
+            margin-top: 20px;
+            font-weight: 700;
+        }
+
+        /* 利用規約オーバーレイ */
+        #disclaimerOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(4, 4, 6, 0.96);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .disclaimer-content {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 24px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .disclaimer-title {
+            color: var(--purple);
+            font-size: 1.25rem;
+            font-weight: 900;
+            text-align: center;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .disclaimer-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+            max-height: 260px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 8px;
+        }
+        
+        .disclaimer-text h4 {
+            color: var(--text-main);
+            margin: 12px 0 6px 0;
+        }
+        .disclaimer-text p {
+            margin: 0 0 10px 0;
+        }
+
+        /* モーダル */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 16px;
+            box-sizing: border-box;
+            backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            background: var(--card-sub);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--purple);
+            margin-top: 4px;
+        }
+        
+        .stat-desc {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 利用規約・免責事項同意画面 -->
+    <div id="disclaimerOverlay">
+        <div class="disclaimer-content">
+            <h3 class="disclaimer-title">⚠️ 利用規約 ＆ 免責事項</h3>
+            <div class="disclaimer-text">
+                <p>ビンゴ5解析支援システム「ビンゴ5予想システムライト」（以下、本ツール）をご利用いただく前に、以下の条項を必ずお読みください。本ツールの利用を開始した時点で、これらの条件に同意したものとみなされます。</p>
+                <h4>1. 免責事項</h4>
+                <p>・本ツールは、過去の当選結果に基づく統計的解析、EMA（指数平滑移動平均）期待値、NPMI（共起シナジー）を算出し、期待値の高い組み合わせを厳選する支援を行うものであり、将来の当選を保証するものではありません。</p>
+                <p>・宝くじの購入はご自身の判断と責任において行ってください。本ツールの利用により生じたいかなる損害、不利益、損失に対しても、開発者および提供者は一切の責任を負いません。</p>
+                <h4>2. データ取得について</h4>
+                <p>・本ツールが利用する最新データは、統計解析の目的で公開データから抽出されたものであり、通信状態等の要因により実際の抽選結果と同期が遅れる場合があります。最終的な当選確認は、必ず主催者（みずほ銀行等）の公式発表で行ってください。</p>
+            </div>
+            <button class="btn-main" onclick="agreeDisclaimer()">同意して利用を開始する</button>
+        </div>
+    </div>
+
+    <!-- メインアプリケーション画面 -->
+    <div class="app-container" id="appContainer" style="display: none;">
+        <header>
+            <h1>BINGO5_PREDICTOR_LIGHT</h1>
+            <div class="subtitle">ビンゴ5予想システム・構造解析多重指標合議版</div>
+        </header>
+
+        <!-- タブ切り替え -->
+        <div class="tab-container">
+            <div class="tab-btn active" id="tab-predict" onclick="switchTab('predict')">🔮 排除コンソール</div>
+            <div class="tab-btn" id="tab-backtest" onclick="switchTab('backtest')">📈 検証バックテスト</div>
+        </div>
+
+        <!-- 予想（排除）タブ -->
+        <div id="tabContent-predict" style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- 3x3 排除・期待値ボード -->
+            <div class="flow-card">
+                <div class="section-title" style="color: var(--purple); margin-bottom: 8px;">
+                    <span>🚫</span> 3x3 期待値排除ボード (EXCLUSION BOARD)
+                </div>
+                <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+                    各マスの5つの数字と位置別期待値EMA（%）が表示されています。タップするとその数字を個別に排除・復活できます。
+                </div>
+                
+                <!-- 3x3 ビンゴボードの形状で排除を行う -->
+                <div class="bingo-board-3x3" id="exclusionBingoBoard">
+                    <!-- JSで動的に構築される -->
+                </div>
+            </div>
+
+            <!-- 指標設定パネル (アコーディオン) -->
+            <div class="flow-card">
+                <div class="settings-header" onclick="toggleSettings()">
+                    <div class="section-title" style="color: var(--purple); margin-bottom: 0;">
+                        <span>⚙️</span> 多重指標フィルター設定
+                    </div>
+                    <span id="settings-arrow" style="font-size: 0.75rem; color: var(--text-muted);">▼ 開く</span>
+                </div>
+                
+                <div class="settings-content" id="settings-content">
+                    <!-- 合計値フィルター -->
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span>合計値 推奨レンジ</span>
+                            <span style="color: var(--purple);">(理論平均: 164)</span>
+                        </div>
+                        <div class="setting-inputs">
+                            <input type="number" id="filter-sum-min" class="setting-input" value="144">
+                            <span>〜</span>
+                            <input type="number" id="filter-sum-max" class="setting-input" value="184">
+                        </div>
+                    </div>
+
+                    <!-- 奇偶比率フィルター -->
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span>奇数個数制限</span>
+                            <span>許可する個数</span>
+                        </div>
+                        <div class="checkbox-group" id="parity-checkboxes">
+                            <!-- JSで動的に構築 -->
+                        </div>
+                    </div>
+
+                    <!-- 高低（大小）バランス -->
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span>高低バランス (Small / Big)</span>
+                            <span>※1,2がSmall、4,5がBig</span>
+                        </div>
+                        <div class="setting-inputs">
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 0.65rem; color: var(--text-muted);">Small許可数</span>
+                                <div class="checkbox-group" id="small-checkboxes" style="grid-template-columns: repeat(3, 1fr);"></div>
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 0.65rem; color: var(--text-muted);">Big許可数</span>
+                                <div class="checkbox-group" id="big-checkboxes" style="grid-template-columns: repeat(3, 1fr);"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Diff5 (隣接マスの値の差が5) -->
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span>隣接差5ペア (Diff5)</span>
+                            <span>許可するペア数</span>
+                        </div>
+                        <div class="checkbox-group" id="diff5-checkboxes">
+                            <!-- JSで動的に構築 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- メイン実行ボタン -->
+            <button class="btn-main" onclick="runAnalysis()">合議解析 ＆ 予想生成</button>
+
+            <!-- データ管理ボタン -->
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-sub" onclick="syncWithAPIServer()" id="btn-sync-api" style="flex: 1.2;">🔄 最新結果を自動同期</button>
+                <button class="btn-sub" onclick="openImportModal()" style="flex: 0.8;">📥 データ入力</button>
+            </div>
+            
+            <div id="sync-status-msg" style="font-size: 0.65rem; text-align: center; color: var(--text-muted); margin-top: -12px; display: none;"></div>
+
+            <!-- 分析結果エリア -->
+            <div id="resultArea" style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- 厳選予想リスト -->
+                <div class="flow-card">
+                    <div class="section-title" style="color: var(--success);">
+                        <span>🚀</span> サバイバー厳選予想 (総合スコア上位5点)
+                    </div>
+                    
+                    <div class="stat-grid" id="exclusionStats" style="display: none;">
+                        <div class="stat-card">
+                            <div class="stat-desc">排除された買い目</div>
+                            <div class="stat-val" id="stat-excluded-rate" style="color: var(--exclude);">0.0%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-desc">生き残った買い目</div>
+                            <div class="stat-val" id="stat-survived-count" style="color: var(--success);">0</div>
+                        </div>
+                    </div>
+
+                    <div id="predictionList">
+                        <div class="prediction-item" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 20px; justify-content: center; width: 100%; box-sizing: border-box;">
+                            「合議解析 ＆ 予想生成」ボタンを押すと予想が表示されます。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- バックテストタブ -->
+        <div id="tabContent-backtest" style="display: none; flex-direction: column; gap: 20px;">
+            <div class="flow-card">
+                <div class="section-title" style="color: var(--purple);">📈 過去履歴による検証 (BACKTEST)</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+                    現在のフィルター設定（手動排除を除く）を用いて、過去の特定回数分を対象に「その回の前日時点のデータで予想を行い、当選番号をどれだけ捕捉できていたか」をシミュレーションします。
+                </div>
+                
+                <div class="setting-item" style="margin-bottom: 16px;">
+                    <div class="setting-label">検証する回数（直近から遡る回数）</div>
+                    <div class="setting-inputs">
+                        <input type="number" id="backtest-rounds" class="setting-input" value="30" min="5" max="100">
+                        <button class="btn-main" onclick="runBacktest()" style="width: auto; padding: 10px 20px;">検証実行</button>
+                    </div>
+                </div>
+
+                <!-- プログレスバー -->
+                <div id="bt-progress-container" style="display: none; margin-bottom: 16px;">
+                    <div style="font-size: 0.7rem; display: flex; justify-content: space-between; color: var(--text-muted);">
+                        <span>シミュレーション進行中...</span>
+                        <span id="bt-progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="bt-progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- 検証結果サマリー -->
+                <div id="bt-result-summary" style="display: none; flex-direction: column; gap: 15px;">
+                    <div style="font-size: 0.8rem; font-weight: 800; color: #fff;">📊 バックテスト統計結果</div>
+                    
+                    <div class="backtest-summary">
+                        <div class="bt-card">
+                            <span class="bt-lbl">生存プール完全保持率<br>(8個すべて捕捉)</span>
+                            <span class="bt-val" id="bt-res-capture" style="color: var(--purple);">0.0%</span>
+                        </div>
+                        <div class="bt-card">
+                            <span class="bt-lbl">平均包含率<br>(8個中平均)</span>
+                            <span class="bt-val" id="bt-res-avg-contain" style="color: #fff;">0.0%</span>
+                        </div>
+                        <div class="bt-card" style="grid-column: span 2;">
+                            <span class="bt-lbl">厳選5点 平均成立ライン数</span>
+                            <span class="bt-val" id="bt-res-avg-lines" style="color: var(--success);">0.0 ライン</span>
+                        </div>
+                        <div class="bt-card">
+                            <span class="bt-lbl">厳選5点 最大成立ライン</span>
+                            <span class="bt-val" id="bt-res-max-lines" style="color: var(--gold);">0 ライン</span>
+                        </div>
+                        <div class="bt-card">
+                            <span class="bt-lbl">平均生存組み合わせ数</span>
+                            <span class="bt-val" id="bt-res-avg-survive" style="color: #fff;">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 検証ログ -->
+                <div id="bt-log-section" style="display: none; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">📋 詳細検証ログ</div>
+                    <div class="bt-log-container" id="bt-log-list">
+                        <!-- JSで動的に追加 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">Powered by BINGO5_PREDICTOR_LIGHT Core</div>
+    </div>
+
+    <!-- データ入力モーダル -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <h4 class="modal-title">📥 データ手動入力・インポート</h4>
+            
+            <div class="tab-container" style="border-bottom-width: 1px;">
+                <div class="tab-btn active" id="modal-tab-manual" onclick="switchModalTab('manual')" style="font-size: 0.75rem; padding: 6px 0;">1件追加</div>
+                <div class="tab-btn" id="modal-tab-csv" onclick="switchModalTab('csv')" style="font-size: 0.75rem; padding: 6px 0;">コピペ/CSV</div>
+            </div>
+
+            <!-- 手動1件追加 -->
+            <div id="modalContent-manual" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="setting-item">
+                    <label class="setting-label">回号</label>
+                    <input type="number" id="input-round" class="setting-input" placeholder="例: 474">
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">抽選日</label>
+                    <input type="date" id="input-date" class="setting-input">
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">当選番号8つ (スペースやカンマ区切り)</label>
+                    <input type="text" id="input-numbers" class="setting-input" placeholder="例: 3 9 14 18 22 29 31 38">
+                </div>
+            </div>
+
+            <!-- コピペ一括追加 -->
+            <div id="modalContent-csv" style="display: none; flex-direction: column; gap: 10px;">
+                <div style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.4;">
+                    CSVフォーマット、または「回号 抽選日 当選番号(8つ)」の形式でコピペしてください。改行区切りで複数行登録できます。<br>
+                    例:<br>
+                    473,2026-06-03,3,9,14,18,22,29,31,38
+                </div>
+                <textarea id="input-csv-text" class="setting-input" rows="8" style="font-family: monospace; font-size: 0.7rem; resize: none;" placeholder="ここに貼り付けてください"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="btn-sub" onclick="closeImportModal()" style="flex: 1;">キャンセル</button>
+                <button class="btn-main" onclick="saveImportedData()" style="flex: 1; padding: 10px;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 履歴データロード -->
+    <script src="bingo5_data.js"></script>
+
+    <script>
+        // ビンゴ5 枠ごとの数字範囲
+        const BINGO5_RANGES = [
+            { min: 1, max: 5 },   // 左上
+            { min: 6, max: 10 },  // 中上
+            { min: 11, max: 15 }, // 右上
+            { min: 16, max: 20 }, // 左中
+            { min: 21, max: 25 }, // 右中
+            { min: 26, max: 30 }, // 左下
+            { min: 31, max: 35 }, // 中下
+            { min: 36, max: 40 }  // 右下
+        ];
+
+        // 3x3ボードの座標とインデックスのマッピング
+        // 0:左上, 1:中上, 2:右上, 3:左中, (FREE), 4:右中, 5:左下, 6:中下, 7:右下
+        const CELL_MAPPING = [
+            { id: 0, label: "左上 (1-5)" },
+            { id: 1, label: "中上 (6-10)" },
+            { id: 2, label: "右上 (11-15)" },
+            { id: 3, label: "左中 (16-20)" },
+            { id: "free", label: "FREE" },
+            { id: 4, label: "右中 (21-25)" },
+            { id: 5, label: "左下 (26-30)" },
+            { id: 6, label: "中下 (31-35)" },
+            { id: 7, label: "右下 (36-40)" }
+        ];
+
+        let currentTab = 'predict';
+        let modalTab = 'manual';
+        
+        // メモリ上のデータ履歴
+        let activeHistory = [];
+        
+        // 手動排除した数字のセット { position_index: Set(digits) }
+        let manualExclusions = {};
+        for(let i=0; i<8; i++) {
+            manualExclusions[i] = new Set();
+        }
+
+        // フィルター設定の初期値
+        let filterSettings = {
+            sumMin: 144,
+            sumMax: 184,
+            parity: [3, 4, 5],
+            small: [2, 3, 4],
+            big: [2, 3, 4],
+            diff5: [0, 1, 2, 3, 4, 5, 6, 7]
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initHistoryData();
+            checkConsent();
+            renderSettingsPanel();
+            renderExclusionBoard();
+        });
+
+        function checkConsent() {
+            if (localStorage.getItem('bingo5_analyzer_consent') === 'true') {
+                document.getElementById('disclaimerOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+            }
+        }
+
+        function agreeDisclaimer() {
+            localStorage.setItem('bingo5_analyzer_consent', 'true');
+            document.getElementById('disclaimerOverlay').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+        }
+
+        // データの統合・マージ処理
+        function initHistoryData() {
+            let defaultData = [];
+            if (typeof DEFAULT_BINGO5_DATA !== 'undefined') {
+                defaultData = DEFAULT_BINGO5_DATA || [];
+            }
+            
+            // localStorageからカスタム入力履歴を読み込み
+            let cachedData = [];
+            const userHistoryRaw = localStorage.getItem('bingo5_analyzer_user_history');
+            if (userHistoryRaw) {
+                try {
+                    cachedData = JSON.parse(userHistoryRaw) || [];
+                } catch (e) {
+                    console.error("Failed to parse user history cache", e);
+                }
+            }
+            
+            // マージ（回号重複を排除）
+            const map = new Map();
+            defaultData.forEach(item => map.set(item.round, item));
+            cachedData.forEach(item => map.set(item.round, item));
+            
+            activeHistory = Array.from(map.values());
+            activeHistory.sort((a, b) => b.round - a.round); // 降順
+        }
+
+        function saveUserHistoryToCache(newItem) {
+            const userHistoryRaw = localStorage.getItem('bingo5_analyzer_user_history') || '[]';
+            let parsed = [];
+            try {
+                parsed = JSON.parse(userHistoryRaw);
+            } catch(e) {}
+            
+            parsed.push(newItem);
+            localStorage.setItem('bingo5_analyzer_user_history', JSON.stringify(parsed));
+            initHistoryData(); // 再ロードしてマージ
+        }
+
+        function saveMultipleUserHistoryToCache(items) {
+            const userHistoryRaw = localStorage.getItem('bingo5_analyzer_user_history') || '[]';
+            let parsed = [];
+            try {
+                parsed = JSON.parse(userHistoryRaw);
+            } catch(e) {}
+            
+            parsed = parsed.concat(items);
+            localStorage.setItem('bingo5_analyzer_user_history', JSON.stringify(parsed));
+            initHistoryData(); // 再ロードしてマージ
+        }
+
+        // タブ切り替え
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            const contents = ['predict', 'backtest'];
+            contents.forEach(id => {
+                document.getElementById(`tabContent-${id}`).style.display = (id === tabId) ? 'flex' : 'none';
+            });
+        }
+
+        // アコーディオン開閉
+        function toggleSettings() {
+            const content = document.getElementById('settings-content');
+            const arrow = document.getElementById('settings-arrow');
+            if (content.style.display === 'flex') {
+                content.style.display = 'none';
+                arrow.innerText = '▼ 開く';
+            } else {
+                content.style.display = 'flex';
+                arrow.innerText = '▲ 閉じる';
+            }
+        }
+
+        // 設定パネルの動的描画
+        function renderSettingsPanel() {
+            // 合計値範囲
+            document.getElementById('filter-sum-min').value = filterSettings.sumMin;
+            document.getElementById('filter-sum-max').value = filterSettings.sumMax;
+            
+            // 奇偶バランスチェックボックス (0〜8奇)
+            const parityContainer = document.getElementById('parity-checkboxes');
+            parityContainer.innerHTML = '';
+            for (let odd = 0; odd <= 8; odd++) {
+                const even = 8 - odd;
+                const ratioStr = `${odd}奇:${even}偶`;
+                const btn = document.createElement('div');
+                btn.className = `checkbox-btn ${filterSettings.parity.includes(odd) ? 'checked' : ''}`;
+                btn.innerText = ratioStr;
+                btn.onclick = () => {
+                    if (filterSettings.parity.includes(odd)) {
+                        filterSettings.parity = filterSettings.parity.filter(x => x !== odd);
+                    } else {
+                        filterSettings.parity.push(odd);
+                    }
+                    btn.classList.toggle('checked');
+                };
+                parityContainer.appendChild(btn);
+            }
+            
+            // Smallチェックボックス (0〜8)
+            const smallContainer = document.getElementById('small-checkboxes');
+            smallContainer.innerHTML = '';
+            for (let c = 0; c <= 8; c++) {
+                const btn = document.createElement('div');
+                btn.className = `checkbox-btn ${filterSettings.small.includes(c) ? 'checked' : ''}`;
+                btn.innerText = `${c}個`;
+                btn.onclick = () => {
+                    if (filterSettings.small.includes(c)) {
+                        filterSettings.small = filterSettings.small.filter(x => x !== c);
+                    } else {
+                        filterSettings.small.push(c);
+                    }
+                    btn.classList.toggle('checked');
+                };
+                smallContainer.appendChild(btn);
+            }
+            
+            // Bigチェックボックス (0〜8)
+            const bigContainer = document.getElementById('big-checkboxes');
+            bigContainer.innerHTML = '';
+            for (let c = 0; c <= 8; c++) {
+                const btn = document.createElement('div');
+                btn.className = `checkbox-btn ${filterSettings.big.includes(c) ? 'checked' : ''}`;
+                btn.innerText = `${c}個`;
+                btn.onclick = () => {
+                    if (filterSettings.big.includes(c)) {
+                        filterSettings.big = filterSettings.big.filter(x => x !== c);
+                    } else {
+                        filterSettings.big.push(c);
+                    }
+                    btn.classList.toggle('checked');
+                };
+                bigContainer.appendChild(btn);
+            }
+
+            // Diff5 チェックボックス
+            const diff5Container = document.getElementById('diff5-checkboxes');
+            diff5Container.innerHTML = '';
+            for (let c = 0; c <= 7; c++) {
+                const btn = document.createElement('div');
+                btn.className = `checkbox-btn ${filterSettings.diff5.includes(c) ? 'checked' : ''}`;
+                btn.innerText = `${c}ペア`;
+                btn.onclick = () => {
+                    if (filterSettings.diff5.includes(c)) {
+                        filterSettings.diff5 = filterSettings.diff5.filter(x => x !== c);
+                    } else {
+                        filterSettings.diff5.push(c);
+                    }
+                    btn.classList.toggle('checked');
+                };
+                diff5Container.appendChild(btn);
+            }
+        }
+
+        // EMAの計算
+        function calculateEMA(series, span) {
+            if (!series || series.length === 0) return 0.0;
+            const alpha = 2.0 / (span + 1);
+            let val = series[0];
+            for (let i = 1; i < series.length; i++) {
+                val = alpha * series[i] + (1 - alpha) * val;
+            }
+            return val;
+        }
+
+        // 位置別期待値EMA (span=8) の算出
+        function calculateEMAMomentum(history) {
+            const limit = 40; // 直近40回分
+            const draws = history.slice(0, limit).reverse(); // 古い順にする
+            const emaScores = [];
+            
+            for (let p = 0; p < 8; p++) {
+                const posScores = {};
+                const r = BINGO5_RANGES[p];
+                for (let num = r.min; num <= r.max; num++) {
+                    const series = draws.map(draw => {
+                        if (draw.numbers && draw.numbers.length > p) {
+                            return draw.numbers[p] === num ? 1.0 : 0.0;
+                        }
+                        return 0.0;
+                    });
+                    posScores[num] = calculateEMA(series, 8); // span=8
+                }
+                emaScores.push(posScores);
+            }
+            return emaScores;
+        }
+
+        // 3x3排除ボードの描画
+        function renderExclusionBoard() {
+            const board = document.getElementById('exclusionBingoBoard');
+            board.innerHTML = '';
+            
+            // 位置別期待値の計算
+            const emaScores = calculateEMAMomentum(activeHistory);
+            
+            CELL_MAPPING.forEach(cell => {
+                const div = document.createElement('div');
+                
+                if (cell.id === "free") {
+                    div.className = "bingo-grid-cell center-cell";
+                    div.innerText = "FREE";
+                    board.appendChild(div);
+                    return;
+                }
+                
+                div.className = "bingo-grid-cell";
+                div.innerHTML = `<div class="cell-header">${cell.label}</div>`;
+                
+                const numsDiv = document.createElement('div');
+                numsDiv.className = "cell-nums";
+                
+                const range = BINGO5_RANGES[cell.id];
+                const posScores = emaScores[cell.id] || {};
+                
+                const scoresList = Object.values(posScores);
+                const avgEMA = scoresList.reduce((a,b)=>a+b, 0) / 5;
+                
+                for (let num = range.min; num <= range.max; num++) {
+                    const emaVal = posScores[num] || 0.0;
+                    const emaPercent = (emaVal * 100).toFixed(0);
+                    
+                    const btn = document.createElement('div');
+                    let btnClass = 'cell-num-btn';
+                    
+                    if (manualExclusions[cell.id].has(num)) {
+                        btnClass += ' excluded';
+                    } else if (emaVal > avgEMA && emaVal > 0.1) {
+                        btnClass += ' hot-num';
+                    }
+                    
+                    btn.className = btnClass;
+                    btn.innerHTML = `
+                        <span>${num}</span>
+                        <span class="num-ema-p">${emaPercent}%</span>
+                    `;
+                    
+                    btn.onclick = () => {
+                        if (manualExclusions[cell.id].has(num)) {
+                            manualExclusions[cell.id].delete(num);
+                            btn.className = 'cell-num-btn';
+                            if (emaVal > avgEMA && emaVal > 0.1) {
+                                btn.classList.add('hot-num');
+                            }
+                        } else {
+                            manualExclusions[cell.id].add(num);
+                            btn.className = 'cell-num-btn excluded';
+                        }
+                    };
+                    
+                    numsDiv.appendChild(btn);
+                }
+                
+                div.appendChild(numsDiv);
+                board.appendChild(div);
+            });
+        }
+
+        // GUIから設定を読み込み
+        function readFilterSettingsFromGUI() {
+            filterSettings.sumMin = parseInt(document.getElementById('filter-sum-min').value) || 0;
+            filterSettings.sumMax = parseInt(document.getElementById('filter-sum-max').value) || 0;
+        }
+
+        // NPMI (共起シナジー) マトリクスの計算
+        function computeSynergyMatrix(history) {
+            if (!history || history.length === 0) return {};
+            const N = history.length;
+            
+            const counts = {};
+            for (let num = 1; num <= 40; num++) counts[num] = 0;
+            
+            const pairCounts = {};
+            
+            history.forEach(draw => {
+                const nums = draw.numbers;
+                if (!nums) return;
+                nums.forEach(n => {
+                    counts[n] = (counts[n] || 0) + 1;
+                });
+                
+                for (let i = 0; i < nums.length; i++) {
+                    for (let j = i + 1; j < nums.length; j++) {
+                        const pair = [nums[i], nums[j]].sort((a,b)=>a-b);
+                        const key = `${pair[0]}_${pair[1]}`;
+                        pairCounts[key] = (pairCounts[key] || 0) + 1;
+                    }
+                }
+            });
+            
+            const synergy = {};
+            Object.keys(pairCounts).forEach(key => {
+                const [i, j] = key.split('_').map(Number);
+                const c_ij = pairCounts[key];
+                const ci = counts[i] || 0;
+                const cj = counts[j] || 0;
+                
+                if (ci === 0 || cj === 0 || c_ij === 0) return;
+                
+                const pmi = Math.log((c_ij * N) / (ci * cj));
+                const p_ij = c_ij / N;
+                const npmi = pmi / (-Math.log(p_ij));
+                
+                // Scale to [0, 1]
+                synergy[key] = (npmi + 1.0) / 2.0;
+            });
+            
+            return synergy;
+        }
+
+        // 組み合わせ解析＆予想生成
+        function runAnalysis() {
+            readFilterSettingsFromGUI();
+            const history = activeHistory;
+            
+            if (history.length < 2) {
+                alert("解析を行うための十分な当選履歴データがありません。");
+                return;
+            }
+            
+            // 手動排除を適用した候補リスト作成
+            const candidates = [];
+            for (let i = 0; i < 8; i++) {
+                const r = BINGO5_RANGES[i];
+                const list = [];
+                for (let num = r.min; num <= r.max; num++) {
+                    if (!manualExclusions[i].has(num)) {
+                        list.push(num);
+                    }
+                }
+                candidates.push(list);
+            }
+            
+            // 候補数が0の枠がないかチェック
+            for (let i = 0; i < 8; i++) {
+                if (candidates[i].length === 0) {
+                    alert(`第 ${i+1} 枠 (${BINGO5_RANGES[i].min}〜${BINGO5_RANGES[i].max}) のすべての数字が排除されています。少なくとも1つは復活させてください。`);
+                    return;
+                }
+            }
+
+            // 位置別EMA期待値の計算
+            const emaScores = calculateEMAMomentum(history);
+            
+            // NPMI共起シナジーの計算
+            const synergyMatrix = computeSynergyMatrix(history);
+            
+            const totalCombosCount = 390625;
+            const survivors = [];
+            
+            // 多重ループで生存プール構築 (手動排除を考慮してループ範囲を制限)
+            // ネストされたループで全探索
+            const c0 = candidates[0];
+            const c1 = candidates[1];
+            const c2 = candidates[2];
+            const c3 = candidates[3];
+            const c4 = candidates[4];
+            const c5 = candidates[5];
+            const c6 = candidates[6];
+            const c7 = candidates[7];
+
+            for (let i0 = 0; i0 < c0.length; i0++) {
+                const v0 = c0[i0];
+                for (let i1 = 0; i1 < c1.length; i1++) {
+                    const v1 = c1[i1];
+                    for (let i2 = 0; i2 < c2.length; i2++) {
+                        const v2 = c2[i2];
+                        for (let i3 = 0; i3 < c3.length; i3++) {
+                            const v3 = c3[i3];
+                            for (let i4 = 0; i4 < c4.length; i4++) {
+                                const v4 = c4[i4];
+                                for (let i5 = 0; i5 < c5.length; i5++) {
+                                    const v5 = c5[i5];
+                                    for (let i6 = 0; i6 < c6.length; i6++) {
+                                        const v6 = c6[i6];
+                                        for (let i7 = 0; i7 < c7.length; i7++) {
+                                            const v7 = c7[i7];
+                                            
+                                            const combo = [v0, v1, v2, v3, v4, v5, v6, v7];
+                                            
+                                            // 1. 合計値フィルター
+                                            const totalSum = v0 + v1 + v2 + v3 + v4 + v5 + v6 + v7;
+                                            if (totalSum < filterSettings.sumMin || totalSum > filterSettings.sumMax) continue;
+                                            
+                                            // 2. 奇偶フィルター
+                                            let oddCount = 0;
+                                            if (v0 % 2 !== 0) oddCount++;
+                                            if (v1 % 2 !== 0) oddCount++;
+                                            if (v2 % 2 !== 0) oddCount++;
+                                            if (v3 % 2 !== 0) oddCount++;
+                                            if (v4 % 2 !== 0) oddCount++;
+                                            if (v5 % 2 !== 0) oddCount++;
+                                            if (v6 % 2 !== 0) oddCount++;
+                                            if (v7 % 2 !== 0) oddCount++;
+                                            if (!filterSettings.parity.includes(oddCount)) continue;
+                                            
+                                            // 3. 高低フィルター
+                                            let smallCount = 0;
+                                            let bigCount = 0;
+                                            
+                                            // マス内の相対値: val - base + 1
+                                            if ((v0 - 0) <= 2) smallCount++; else if ((v0 - 0) >= 4) bigCount++;
+                                            if ((v1 - 5) <= 2) smallCount++; else if ((v1 - 5) >= 4) bigCount++;
+                                            if ((v2 - 10) <= 2) smallCount++; else if ((v2 - 10) >= 4) bigCount++;
+                                            if ((v3 - 15) <= 2) smallCount++; else if ((v3 - 15) >= 4) bigCount++;
+                                            if ((v4 - 20) <= 2) smallCount++; else if ((v4 - 20) >= 4) bigCount++;
+                                            if ((v5 - 25) <= 2) smallCount++; else if ((v5 - 25) >= 4) bigCount++;
+                                            if ((v6 - 30) <= 2) smallCount++; else if ((v6 - 30) >= 4) bigCount++;
+                                            if ((v7 - 35) <= 2) smallCount++; else if ((v7 - 35) >= 4) bigCount++;
+
+                                            if (!filterSettings.small.includes(smallCount)) continue;
+                                            if (!filterSettings.big.includes(bigCount)) continue;
+                                            
+                                            // 4. Diff5フィルター (隣接マスでの差が5)
+                                            let diff5Count = 0;
+                                            for (let idx = 0; idx < 7; idx++) {
+                                                if (Math.abs(combo[idx] - combo[idx+1]) === 5) {
+                                                    diff5Count++;
+                                                }
+                                            }
+                                            if (!filterSettings.diff5.includes(diff5Count)) continue;
+                                            
+                                            // --- 生存プールをクリア ---
+                                            
+                                            // EMAスコアの合算
+                                            let baseEMAScore = 
+                                                (emaScores[0][v0] || 0) +
+                                                (emaScores[1][v1] || 0) +
+                                                (emaScores[2][v2] || 0) +
+                                                (emaScores[3][v3] || 0) +
+                                                (emaScores[4][v4] || 0) +
+                                                (emaScores[5][v5] || 0) +
+                                                (emaScores[6][v6] || 0) +
+                                                (emaScores[7][v7] || 0);
+                                                
+                                            // NPMI共起シナジーの合算
+                                            let totalSynergy = 0;
+                                            let pairs = 0;
+                                            for (let i = 0; i < 8; i++) {
+                                                for (let j = i + 1; j < 8; j++) {
+                                                    const key = `${combo[i]}_${combo[j]}`;
+                                                    totalSynergy += synergyMatrix[key] || 0.0;
+                                                    pairs++;
+                                                }
+                                            }
+                                            const avgSynergy = totalSynergy / pairs;
+                                            
+                                            // 構造解析ルールボーナス加点
+                                            let ruleBonus = 0.0;
+                                            if (totalSum >= 150 && totalSum <= 178) ruleBonus += 1.0;
+                                            if (oddCount >= 3 && oddCount <= 5) ruleBonus += 1.0;
+                                            if (smallCount >= 2 && smallCount <= 4) ruleBonus += 1.0;
+                                            if (bigCount >= 2 && bigCount <= 4) ruleBonus += 1.0;
+                                            if (diff5Count >= 1) ruleBonus += 0.5;
+                                            
+                                            // 総合スコア
+                                            const finalScore = baseEMAScore + (avgSynergy * 2.0) + ruleBonus;
+                                            
+                                            survivors.push({
+                                                combo: combo,
+                                                sum: totalSum,
+                                                odd: oddCount,
+                                                diff5: diff5Count,
+                                                finalScore: finalScore
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 総合スコア降順ソート
+            survivors.sort((a, b) => b.finalScore - a.finalScore);
+            
+            // 統計データの更新
+            const excludedCount = totalCombosCount - survivors.length;
+            const excludedRate = ((excludedCount / totalCombosCount) * 100).toFixed(2);
+            
+            document.getElementById('stat-excluded-rate').innerText = `${excludedRate}%`;
+            document.getElementById('stat-survived-count').innerText = `${survivors.length} 通り`;
+            document.getElementById('exclusionStats').style.display = 'grid';
+            
+            // 予想リストの描画
+            const predList = document.getElementById('predictionList');
+            predList.innerHTML = '';
+            
+            if (survivors.length === 0) {
+                predList.innerHTML = `
+                    <div class="prediction-item" style="text-align: center; color: var(--exclude); font-size: 0.8rem; padding: 20px; font-weight: bold; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ⚠️ 生存した組み合わせがありません。フィルター条件を緩和してください。
+                    </div>
+                `;
+                return;
+            }
+            
+            // 最新回（直近の回）の当選番号を取得し、予想結果との一致を強調表示する
+            const latestDraw = history[0];
+            const winNums = latestDraw ? latestDraw.numbers : null;
+
+            // 上位5点出力
+            const displayCount = Math.min(5, survivors.length);
+            for (let i = 0; i < displayCount; i++) {
+                const itemData = survivors[i];
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                
+                // ビンゴ成立ライン数を計算 (直近回と比較)
+                const { count: linesCount, activeLines } = winNums ? calculateLines(itemData.combo, winNums) : { count: 0, activeLines: [] };
+                
+                // ミニビンゴボードの描画
+                const miniBoardDiv = document.createElement('div');
+                miniBoardDiv.className = 'pred-board-mini';
+                
+                // 3x3 のセルを作成
+                CELL_MAPPING.forEach(cell => {
+                    const cellDiv = document.createElement('div');
+                    if (cell.id === "free") {
+                        cellDiv.className = "pred-cell-mini center-cell";
+                        cellDiv.innerText = "FREE";
+                        if (linesCount > 0) {
+                            cellDiv.classList.add('bingo-hit');
+                        }
+                    } else {
+                        cellDiv.className = "pred-cell-mini";
+                        const num = itemData.combo[cell.id];
+                        cellDiv.innerText = num;
+                        cellDiv.setAttribute('data-idx', cell.id);
+                        
+                        if (winNums && num === winNums[cell.id]) {
+                            cellDiv.classList.add('bingo-hit');
+                        }
+                    }
+                    miniBoardDiv.appendChild(cellDiv);
+                });
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'prediction-info';
+                
+                let linesText = "";
+                if (winNums) {
+                    linesText = `• 直近第${latestDraw.round}回照合: <strong style="color: var(--gold);">${linesCount} ライン成立</strong><br>`;
+                }
+                
+                infoDiv.innerHTML = `
+                    <div style="font-size: 0.8rem; color: var(--purple); font-weight: 900; margin-bottom: 4px;">厳選予想 [${i+1}]</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.6;">
+                        ${linesText}
+                        • 合計値: <strong style="color: #fff;">${itemData.sum}</strong> (推奨内)<br>
+                        • 奇偶比率: <strong style="color: #fff;">${itemData.odd}奇:${8-itemData.odd}偶</strong><br>
+                        • 隣接差5: <strong style="color: #fff;">${itemData.diff5}ペア</strong><br>
+                        • 総合スコア: <strong style="color: var(--purple);">${itemData.finalScore.toFixed(3)}</strong>
+                    </div>
+                `;
+                
+                item.appendChild(infoDiv);
+                item.appendChild(miniBoardDiv);
+                predList.appendChild(item);
+            }
+            
+            // 排除された状態を反映するために排除ボードも再描画
+            renderExclusionBoard();
+        }
+
+        // ビンゴ成立ライン数を計算する
+        function calculateLines(combo, winNums) {
+            const hits = combo.map((c, i) => c === winNums[i]);
+            const f = true; // FREEは常にヒット
+            
+            let lines = 0;
+            const activeLines = [];
+            
+            // 横
+            if (hits[0] && hits[1] && hits[2]) { lines++; activeLines.push('h-top'); }
+            if (hits[3] && f && hits[4]) { lines++; activeLines.push('h-mid'); }
+            if (hits[5] && hits[6] && hits[7]) { lines++; activeLines.push('h-bottom'); }
+            // 縦
+            if (hits[0] && hits[3] && hits[5]) { lines++; activeLines.push('v-left'); }
+            if (hits[1] && f && hits[6]) { lines++; activeLines.push('v-mid'); }
+            if (hits[2] && hits[4] && hits[7]) { lines++; activeLines.push('v-right'); }
+            // 斜め
+            if (hits[0] && f && hits[7]) { lines++; activeLines.push('d-backslash'); }
+            if (hits[2] && f && hits[5]) { lines++; activeLines.push('d-slash'); }
+            
+            return { count: lines, activeLines: activeLines };
+        }
+
+        // ==========================================
+        //  バックテスト検証シミュレータ
+        // ==========================================
+        function runBacktest() {
+            readFilterSettingsFromGUI();
+            const history = activeHistory;
+            const backtestRounds = parseInt(document.getElementById('backtest-rounds').value) || 30;
+            
+            if (history.length < backtestRounds + 2) {
+                alert(`データ件数が不足しています。検証には最低 ${backtestRounds + 2} 回分の過去結果が必要です。`);
+                return;
+            }
+            
+            // UI表示の開始
+            const progressContainer = document.getElementById('bt-progress-container');
+            const progressFill = document.getElementById('bt-progress-fill');
+            const progressPercent = document.getElementById('bt-progress-percent');
+            const resultSummary = document.getElementById('bt-result-summary');
+            const logSection = document.getElementById('bt-log-section');
+            const logList = document.getElementById('bt-log-list');
+            
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressPercent.innerText = '0%';
+            resultSummary.style.display = 'none';
+            logSection.style.display = 'none';
+            logList.innerHTML = '';
+            
+            let fullCaptured = 0;
+            let totalContainRate = 0.0;
+            let totalSurvivedCombos = 0;
+            let totalLinesHit = 0;
+            let maxLineHit = 0;
+            
+            const logs = [];
+            
+            // シミュレーション実行 (重たいループなので、setTimeoutで処理しブラウザフリーズを防ぐ)
+            let roundIdx = 0;
+            
+            function processRound() {
+                if (roundIdx >= backtestRounds) {
+                    // バックテスト完了時の集計処理
+                    progressContainer.style.display = 'none';
+                    
+                    const avgContain = (totalContainRate / backtestRounds) * 100;
+                    const captureRate = (fullCaptured / backtestRounds) * 100;
+                    const avgLines = totalLinesHit / (backtestRounds * 5); // 厳選5点全体の平均ライン数
+                    const avgSurvived = Math.round(totalSurvivedCombos / backtestRounds);
+                    
+                    document.getElementById('bt-res-capture').innerText = `${captureRate.toFixed(1)}%`;
+                    document.getElementById('bt-res-avg-contain').innerText = `${avgContain.toFixed(1)}%`;
+                    document.getElementById('bt-res-avg-lines').innerText = `${avgLines.toFixed(2)} ライン`;
+                    document.getElementById('bt-res-max-lines').innerText = `${maxLineHit} ライン`;
+                    document.getElementById('bt-res-avg-survive').innerText = `${avgSurvived} 通り`;
+                    
+                    resultSummary.style.display = 'flex';
+                    
+                    // ログリストの描画
+                    logs.forEach(log => {
+                        const row = document.createElement('div');
+                        row.className = 'bt-log-row';
+                        
+                        let badgeClass = 'badge missed';
+                        let badgeText = '0 ライン';
+                        if (log.maxLines > 0) {
+                            badgeClass = 'badge straight';
+                            badgeText = `${log.maxLines}ライン成立`;
+                        }
+                        
+                        row.innerHTML = `
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                                <span style="font-weight:bold; color:#fff;">第 ${log.round} 回 [当選: ${log.winNums.join(', ')}]</span>
+                                <span style="color:var(--text-muted); font-size:0.6rem;">生存プール: ${log.survived} 通り | 捕捉数: ${log.contains}/8</span>
+                            </div>
+                            <div style="display:flex; align-items:center;">
+                                <span class="${badgeClass}">${badgeText}</span>
+                            </div>
+                        `;
+                        logList.appendChild(row);
+                    });
+                    
+                    logSection.style.display = 'flex';
+                    return;
+                }
+                
+                const targetIndex = roundIdx;
+                const targetDraw = history[targetIndex]; // 検証対象
+                const simHistory = history.slice(targetIndex + 1); // 過去履歴のみ
+                
+                const winNums = targetDraw.numbers;
+                
+                // 位置別EMAの計算
+                const emaScores = calculateEMAMomentum(simHistory);
+                
+                // シナジーマトリクス
+                const synergyMatrix = computeSynergyMatrix(simHistory);
+                
+                const survivors = [];
+                
+                // 3x3ボードの候補リスト（手動排除はバックテスト時には適用しない）
+                const candidates = [];
+                for (let i = 0; i < 8; i++) {
+                    const r = BINGO5_RANGES[i];
+                    const list = [];
+                    for (let num = r.min; num <= r.max; num++) {
+                        list.push(num);
+                    }
+                    candidates.push(list);
+                }
+                
+                // ネストループ
+                const c0 = candidates[0];
+                const c1 = candidates[1];
+                const c2 = candidates[2];
+                const c3 = candidates[3];
+                const c4 = candidates[4];
+                const c5 = candidates[5];
+                const c6 = candidates[6];
+                const c7 = candidates[7];
+
+                for (let i0 = 0; i0 < c0.length; i0++) {
+                    const v0 = c0[i0];
+                    for (let i1 = 0; i1 < c1.length; i1++) {
+                        const v1 = c1[i1];
+                        for (let i2 = 0; i2 < c2.length; i2++) {
+                            const v2 = c2[i2];
+                            for (let i3 = 0; i3 < c3.length; i3++) {
+                                const v3 = c3[i3];
+                                for (let i4 = 0; i4 < c4.length; i4++) {
+                                    const v4 = c4[i4];
+                                    for (let i5 = 0; i5 < c5.length; i5++) {
+                                        const v5 = c5[i5];
+                                        for (let i6 = 0; i6 < c6.length; i6++) {
+                                            const v6 = c6[i6];
+                                            for (let i7 = 0; i7 < c7.length; i7++) {
+                                                const v7 = c7[i7];
+                                                
+                                                const combo = [v0, v1, v2, v3, v4, v5, v6, v7];
+                                                
+                                                // 1. 合計値フィルター
+                                                const totalSum = v0 + v1 + v2 + v3 + v4 + v5 + v6 + v7;
+                                                if (totalSum < filterSettings.sumMin || totalSum > filterSettings.sumMax) continue;
+                                                
+                                                // 2. 奇偶フィルター
+                                                let oddCount = 0;
+                                                if (v0 % 2 !== 0) oddCount++;
+                                                if (v1 % 2 !== 0) oddCount++;
+                                                if (v2 % 2 !== 0) oddCount++;
+                                                if (v3 % 2 !== 0) oddCount++;
+                                                if (v4 % 2 !== 0) oddCount++;
+                                                if (v5 % 2 !== 0) oddCount++;
+                                                if (v6 % 2 !== 0) oddCount++;
+                                                if (v7 % 2 !== 0) oddCount++;
+                                                if (!filterSettings.parity.includes(oddCount)) continue;
+                                                
+                                                // 3. 高低フィルター
+                                                let smallCount = 0;
+                                                let bigCount = 0;
+                                                
+                                                if ((v0 - 0) <= 2) smallCount++; else if ((v0 - 0) >= 4) bigCount++;
+                                                if ((v1 - 5) <= 2) smallCount++; else if ((v1 - 5) >= 4) bigCount++;
+                                                if ((v2 - 10) <= 2) smallCount++; else if ((v2 - 10) >= 4) bigCount++;
+                                                if ((v3 - 15) <= 2) smallCount++; else if ((v3 - 15) >= 4) bigCount++;
+                                                if ((v4 - 20) <= 2) smallCount++; else if ((v4 - 20) >= 4) bigCount++;
+                                                if ((v5 - 25) <= 2) smallCount++; else if ((v5 - 25) >= 4) bigCount++;
+                                                if ((v6 - 30) <= 2) smallCount++; else if ((v6 - 30) >= 4) bigCount++;
+                                                if ((v7 - 35) <= 2) smallCount++; else if ((v7 - 35) >= 4) bigCount++;
+
+                                                if (!filterSettings.small.includes(smallCount)) continue;
+                                                if (!filterSettings.big.includes(bigCount)) continue;
+                                                
+                                                // 4. Diff5フィルター
+                                                let diff5Count = 0;
+                                                for (let idx = 0; idx < 7; idx++) {
+                                                    if (Math.abs(combo[idx] - combo[idx+1]) === 5) {
+                                                        diff5Count++;
+                                                    }
+                                                }
+                                                if (!filterSettings.diff5.includes(diff5Count)) continue;
+                                                
+                                                // スコア計算
+                                                let baseEMAScore = 
+                                                    (emaScores[0][v0] || 0) +
+                                                    (emaScores[1][v1] || 0) +
+                                                    (emaScores[2][v2] || 0) +
+                                                    (emaScores[3][v3] || 0) +
+                                                    (emaScores[4][v4] || 0) +
+                                                    (emaScores[5][v5] || 0) +
+                                                    (emaScores[6][v6] || 0) +
+                                                    (emaScores[7][v7] || 0);
+                                                    
+                                                let totalSynergy = 0;
+                                                for (let i = 0; i < 8; i++) {
+                                                    for (let j = i + 1; j < 8; j++) {
+                                                        const key = `${combo[i]}_${combo[j]}`;
+                                                        totalSynergy += synergyMatrix[key] || 0.0;
+                                                    }
+                                                }
+                                                const avgSynergy = totalSynergy / 28;
+                                                
+                                                let ruleBonus = 0.0;
+                                                if (totalSum >= 150 && totalSum <= 178) ruleBonus += 1.0;
+                                                if (oddCount >= 3 && oddCount <= 5) ruleBonus += 1.0;
+                                                if (smallCount >= 2 && smallCount <= 4) ruleBonus += 1.0;
+                                                if (bigCount >= 2 && bigCount <= 4) ruleBonus += 1.0;
+                                                if (diff5Count >= 1) ruleBonus += 0.5;
+                                                
+                                                const finalScore = baseEMAScore + (avgSynergy * 2.0) + ruleBonus;
+                                                
+                                                survivors.push({
+                                                    combo: combo,
+                                                    finalScore: finalScore
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                survivors.sort((a, b) => b.finalScore - a.finalScore);
+                
+                // 生存プールに含まれていた数字の個数
+                let contains = 0;
+                for (let i = 0; i < 8; i++) {
+                    const w = winNums[i];
+                    let found = false;
+                    for (let s = 0; s < survivors.length; s++) {
+                        if (survivors[s].combo[i] === w) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) contains++;
+                }
+                
+                if (contains === 8) fullCaptured++;
+                totalContainRate += (contains / 8.0);
+                totalSurvivedCombos += survivors.length;
+                
+                // 厳選5点でのビンゴ判定
+                let maxLinesThisRound = 0;
+                const displayCount = Math.min(5, survivors.length);
+                for (let i = 0; i < displayCount; i++) {
+                    const res = calculateLines(survivors[i].combo, winNums);
+                    totalLinesHit += res.count;
+                    if (res.count > maxLinesThisRound) {
+                        maxLinesThisRound = res.count;
+                    }
+                }
+                
+                if (maxLinesThisRound > maxLineHit) {
+                    maxLineHit = maxLinesThisRound;
+                }
+                
+                logs.push({
+                    round: targetDraw.round,
+                    winNums: winNums,
+                    survived: survivors.length,
+                    contains: contains,
+                    maxLines: maxLinesThisRound
+                });
+                
+                // 進捗表示の更新
+                roundIdx++;
+                const pct = Math.round((roundIdx / backtestRounds) * 100);
+                progressFill.style.width = `${pct}%`;
+                progressPercent.innerText = `${pct}%`;
+                
+                setTimeout(processRound, 10);
+            }
+            
+            setTimeout(processRound, 10);
+        }
+
+        // ==========================================
+        //  自動同期機能
+        // ==========================================
+        function syncWithAPIServer() {
+            const statusMsg = document.getElementById('sync-status-msg');
+            statusMsg.style.display = 'block';
+            statusMsg.style.color = 'var(--text-muted)';
+            statusMsg.innerText = "同期サーバーと通信中...";
+            
+            // ライト版はローカルで完結する静的HTMLのため、python update_data.py の同期機能が裏で動いているか、
+            // APIサーバーが動いている場合に同期する。
+            // ここではローカルの5006ポート（Flaskアプリ）で /api/sync があればそこを叩く。
+            // なければタイムアウトして手動実行を促す。
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            
+            fetch('http://127.0.0.1:5006/api/sync', { method: 'POST', signal: controller.signal })
+                .then(res => res.json())
+                .then(data => {
+                    clearTimeout(timeoutId);
+                    if (data.status === 'success') {
+                        statusMsg.style.color = 'var(--success)';
+                        statusMsg.innerText = data.message + " リロードして反映します。";
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        statusMsg.style.color = 'var(--fail)';
+                        statusMsg.innerText = "同期失敗: " + data.message;
+                    }
+                })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    statusMsg.style.color = 'var(--fail)';
+                    statusMsg.innerText = "同期サーバー (Flask) が稼働していません。update_data.py を直接実行するか、手動入力してください。";
+                });
+        }
+
+        // ==========================================
+        //  データ手動インポート / モーダル処理
+        // ==========================================
+        function openImportModal() {
+            document.getElementById('importModal').style.display = 'flex';
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+        }
+
+        function switchModalTab(tabId) {
+            modalTab = tabId;
+            document.querySelectorAll('#importModal .tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`modal-tab-${tabId}`).classList.add('active');
+
+            const contents = ['manual', 'csv'];
+            contents.forEach(id => {
+                document.getElementById(`modalContent-${id}`).style.display = (id === tabId) ? 'flex' : 'none';
+            });
+        }
+
+        function saveImportedData() {
+            if (modalTab === 'manual') {
+                const roundNo = parseInt(document.getElementById('input-round').value);
+                const dateStr = document.getElementById('input-date').value.trim();
+                const numsStr = document.getElementById('input-numbers').value.trim();
+                
+                if (!roundNo || !dateStr || !numsStr) {
+                    alert("すべてのフィールドを入力してください。");
+                    return;
+                }
+                
+                const numbers = numsStr.split(/[\s,，]+/).map(Number);
+                if (numbers.length !== 8 || numbers.some(isNaN)) {
+                    alert("当選番号はスペースやカンマ区切りで8つの数値を入力してください。");
+                    return;
+                }
+                
+                // バリデーション
+                for (let i = 0; i < 8; i++) {
+                    const r = BINGO5_RANGES[i];
+                    if (numbers[i] < r.min || numbers[i] > r.max) {
+                        alert(`第 ${i+1} 枠の数値が範囲外です: ${numbers[i]} (範囲: ${r.min}〜${r.max})`);
+                        return;
+                    }
+                }
+                
+                const newItem = {
+                    round: roundNo,
+                    date: dateStr,
+                    numbers: numbers
+                };
+                
+                saveUserHistoryToCache(newItem);
+                alert("データを保存しました。");
+                closeImportModal();
+                location.reload();
+            } else {
+                const csvText = document.getElementById('input-csv-text').value.trim();
+                if (!csvText) {
+                    alert("CSVテキストを入力してください。");
+                    return;
+                }
+                
+                const lines = csvText.split('\n');
+                const newItems = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const parts = line.split(/[\s,，]+/);
+                    if (parts.length < 10) {
+                        alert(`データ行のフォーマットが正しくありません: \n"${line}"`);
+                        return;
+                    }
+                    
+                    const roundNo = parseInt(parts[0]);
+                    const dateStr = parts[1];
+                    const numbers = parts.slice(2, 10).map(Number);
+                    
+                    if (isNaN(roundNo) || !dateStr || numbers.length !== 8 || numbers.some(isNaN)) {
+                        alert(`パース失敗: \n"${line}"`);
+                        return;
+                    }
+                    
+                    // 範囲チェック
+                    let rangeCheck = true;
+                    for (let j = 0; j < 8; j++) {
+                        const r = BINGO5_RANGES[j];
+                        if (numbers[j] < r.min || numbers[j] > r.max) {
+                            rangeCheck = false;
+                            break;
+                        }
+                    }
+                    
+                    if (!rangeCheck) {
+                        alert(`数値の範囲が不正です (ビンゴ5): \n"${line}"`);
+                        return;
+                    }
+                    
+                    newItems.push({
+                        round: roundNo,
+                        date: dateStr,
+                        numbers: numbers
+                    });
+                }
+                
+                if (newItems.length > 0) {
+                    saveMultipleUserHistoryToCache(newItems);
+                    alert(`${newItems.length} 件のデータを保存しました。`);
+                    closeImportModal();
+                    location.reload();
+                }
+            }
+        }
+    </script>
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b7f74bde365b4aa480344eac948b7e6b"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
