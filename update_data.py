@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import re
+import time
 import requests
 import io
 import pandas as pd
@@ -29,9 +30,21 @@ def fetch_and_parse_csv():
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
-    response = requests.get(BINGO5_CSV_URL, headers=headers, timeout=15)
-    response.raise_for_status()
     
+    max_retries = 3
+    retry_delay = 5
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.get(BINGO5_CSV_URL, headers=headers, timeout=15)
+            response.raise_for_status()
+            break
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
+            if attempt == max_retries:
+                raise e
+            logger.warning(f"Attempt {attempt} failed: {e}. Retrying in {retry_delay} seconds...")
+            time.sleep(retry_delay)
+            
     csv_bytes = response.content
     decoded_text = None
     for enc in ('cp932', 'utf-8', 'utf-8-sig'):
