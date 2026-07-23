@@ -541,6 +541,44 @@
             font-weight: 700;
         }
 
+        .drop-zone {
+            border: 2px dashed var(--purple);
+            border-radius: 14px;
+            padding: 20px 10px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(168, 85, 247, 0.02);
+            margin-top: 10px;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+            color: var(--text-main);
+        }
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .status-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #4b5563;
+            border-radius: 50%;
+        }
+        .status-badge.online {
+            background-color: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
         /* 利用規約オーバーレイ */
         #disclaimerOverlay {
             position: fixed;
@@ -686,6 +724,10 @@
         <header>
             <h1>BINGO5_PREDICTOR_LIGHT</h1>
             <div class="subtitle">ビンゴ5予想システム・構造解析多重指標合議版</div>
+            <div class="status-container">
+                <span class="status-badge" id="status-badge"></span>
+                <span id="status-text">オフライン (ローカル)</span>
+            </div>
         </header>
 
         <!-- タブ切り替え -->
@@ -782,7 +824,7 @@
 
             <!-- データ管理ボタン -->
             <div style="display: flex; gap: 8px;">
-                <button class="btn-sub" onclick="syncWithAPIServer()" id="btn-sync-api" style="flex: 1.2;">🔄 最新結果を自動同期</button>
+                <button class="btn-sub" onclick="fetchLatestBingoData()" id="btn-sync-api" style="flex: 1.2;">🔄 最新結果を自動同期</button>
                 <button class="btn-sub" onclick="openImportModal()" style="flex: 0.8;">📥 データ入力</button>
             </div>
             
@@ -913,11 +955,16 @@
             <!-- コピペ一括追加 -->
             <div id="modalContent-csv" style="display: none; flex-direction: column; gap: 10px;">
                 <div style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.4;">
-                    CSVフォーマット、または「回号 抽選日 当選番号(8つ)」の形式でコピペしてください。改行区切りで複数行登録できます。<br>
+                    過去データCSVファイルをドロップするか、または「回号 抽選日 当選番号(8つ)」の形式でコピペしてください。改行区切りで複数行登録できます。<br>
                     例:<br>
                     473,2026-06-03,3,9,14,18,22,29,31,38
                 </div>
-                <textarea id="input-csv-text" class="setting-input" rows="8" style="font-family: monospace; font-size: 0.7rem; resize: none;" placeholder="ここに貼り付けてください"></textarea>
+                <!-- 過去データCSVドラッグ＆ドロップエリア -->
+                <div id="drop-zone" class="drop-zone">
+                    ここにCSVファイルをドラッグ＆ドロップ、<br>またはクリックして選択
+                    <input type="file" id="file-input" accept=".csv" style="display: none;">
+                </div>
+                <textarea id="input-csv-text" class="setting-input" rows="8" style="font-family: monospace; font-size: 0.7rem; resize: none;" placeholder="または、ここにCSVテキストを貼り付けできます"></textarea>
             </div>
 
             <div style="display: flex; gap: 8px; margin-top: 10px;">
@@ -979,11 +1026,12 @@
             diff5: [0, 1, 2, 3, 4, 5, 6, 7]
         };
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             initHistoryData();
             checkConsent();
             renderSettingsPanel();
             renderExclusionBoard();
+            await fetchLatestBingoData();
         });
 
         function checkConsent() {
@@ -1869,39 +1917,54 @@
         }
 
         // ==========================================
-        //  自動同期機能
+        //  自動同期機能 (lotto-data-hub から取得)
         // ==========================================
-        function syncWithAPIServer() {
+        async function fetchLatestBingoData() {
+            const badge = document.getElementById("status-badge");
+            const text = document.getElementById("status-text");
             const statusMsg = document.getElementById('sync-status-msg');
-            statusMsg.style.display = 'block';
-            statusMsg.style.color = 'var(--text-muted)';
-            statusMsg.innerText = "同期サーバーと通信中...";
             
-            // ライト版はローカルで完結する静的HTMLのため、python update_data.py の同期機能が裏で動いているか、
-            // APIサーバーが動いている場合に同期する。
-            // ここではローカルの5006ポート（Flaskアプリ）で /api/sync があればそこを叩く。
-            // なければタイムアウトして手動実行を促す。
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
-            
-            fetch('http://127.0.0.1:5006/api/sync', { method: 'POST', signal: controller.signal })
-                .then(res => res.json())
-                .then(data => {
-                    clearTimeout(timeoutId);
-                    if (data.status === 'success') {
-                        statusMsg.style.color = 'var(--success)';
-                        statusMsg.innerText = data.message + " リロードして反映します。";
-                        setTimeout(() => location.reload(), 1500);
-                    } else {
-                        statusMsg.style.color = 'var(--fail)';
-                        statusMsg.innerText = "同期失敗: " + data.message;
+            if (badge && text) {
+                badge.className = "status-badge";
+                text.textContent = "同期中...";
+            }
+            if (statusMsg) {
+                statusMsg.style.display = 'block';
+                statusMsg.style.color = 'var(--text-muted)';
+                statusMsg.innerText = "同期サーバーと通信中...";
+            }
+
+            try {
+                const response = await fetch(`https://tk030-lotto.github.io/lotto-data-hub/data/bingo5.json`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    DEFAULT_BINGO5_DATA = data;
+                    initHistoryData(); // マージ再処理
+                    
+                    if (badge && text) {
+                        badge.className = "status-badge online";
+                        text.textContent = "同期済み (自動更新)";
                     }
-                })
-                .catch(err => {
-                    clearTimeout(timeoutId);
+                    if (statusMsg) {
+                        statusMsg.style.color = 'var(--success)';
+                        statusMsg.innerText = "同期成功！最新データを反映しました。";
+                        setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
+                    }
+                    renderExclusionBoard();
+                    console.log(`Successfully synced bingo5 with latest data.`);
+                }
+            } catch (err) {
+                console.warn(`Failed to fetch latest data for bingo5: ${err.message}. Using offline preloaded data.`);
+                if (badge && text) {
+                    badge.className = "status-badge";
+                    text.textContent = "オフライン (ローカル)";
+                }
+                if (statusMsg) {
                     statusMsg.style.color = 'var(--fail)';
-                    statusMsg.innerText = "同期サーバー (Flask) が稼働していません。update_data.py を直接実行するか、手動入力してください。";
-                });
+                    statusMsg.innerText = "同期失敗: " + err.message + "。オフラインデータを使用します。";
+                }
+            }
         }
 
         // ==========================================
@@ -1909,6 +1972,17 @@
         // ==========================================
         function openImportModal() {
             document.getElementById('importModal').style.display = 'flex';
+            
+            // 手動入力の回号初期値をセット
+            if (activeHistory.length > 0) {
+                document.getElementById('input-round').value = activeHistory[0].round + 1;
+            }
+            document.getElementById('input-date').value = new Date().toISOString().substring(0, 10);
+            document.getElementById('input-numbers').value = '';
+            document.getElementById('input-csv-text').value = '';
+            
+            // CSVドラッグ＆ドロップ初期化
+            setTimeout(initCSVImport, 100);
         }
 
         function closeImportModal() {
@@ -1924,6 +1998,9 @@
             contents.forEach(id => {
                 document.getElementById(`modalContent-${id}`).style.display = (id === tabId) ? 'flex' : 'none';
             });
+            if (tabId === 'csv') {
+                setTimeout(initCSVImport, 100);
+            }
         }
 
         function saveImportedData() {
@@ -1968,30 +2045,112 @@
                     alert("CSVテキストを入力してください。");
                     return;
                 }
+                try {
+                    parseCSVText(csvText, "copied_text.csv");
+                } catch (err) {
+                    alert("CSVのパースに失敗しました。ファイル形式が正しいかご確認ください。\nエラー: " + err.message);
+                }
+            }
+        }
+
+        // CSVファイルドラッグ＆ドロップ用エンジン
+        function handleCSVFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const buffer = e.target.result;
+                const view = new Uint8Array(buffer);
+                let isUTF8 = true;
                 
-                const lines = csvText.split('\n');
-                const newItems = [];
+                for (let i = 0; i < Math.min(view.length, 1000); i++) {
+                    if (view[i] > 127) {
+                        if ((view[i] & 0xE0) === 0xC0) {
+                            if (i + 1 < view.length && (view[i+1] & 0xC0) === 0x80) { i++; continue; }
+                        } else if ((view[i] & 0xF0) === 0xE0) {
+                            if (i + 2 < view.length && (view[i+1] & 0xC0) === 0x80 && (view[i+2] & 0xC0) === 0x80) { i += 2; continue; }
+                        }
+                        isUTF8 = false;
+                        break;
+                    }
+                }
                 
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    const parts = line.split(/[\s,，]+/);
-                    if (parts.length < 10) {
-                        alert(`データ行のフォーマットが正しくありません: \n"${line}"`);
-                        return;
+                const decoder = new TextDecoder(isUTF8 ? "utf-8" : "shift-jis");
+                const textStr = decoder.decode(view);
+                
+                try {
+                    parseCSVText(textStr, file.name);
+                } catch (err) {
+                    alert("CSVのパースに失敗しました。ファイル形式が正しいかご確認ください。\nエラー: " + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseCSVText(text, filename) {
+            const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+            if (lines.length < 1) throw new Error("データ行が足りません。");
+            
+            function splitCSVLine(line) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim().replace(/^"|"$/g, "").replace(/^='(.*)'$/, "$1").replace(/^="(.+?)"$/, "$1"));
+                        current = '';
+                    } else {
+                        current += char;
                     }
-                    
-                    const roundNo = parseInt(parts[0]);
-                    const dateStr = parts[1];
-                    const numbers = parts.slice(2, 10).map(Number);
-                    
-                    if (isNaN(roundNo) || !dateStr || numbers.length !== 8 || numbers.some(isNaN)) {
-                        alert(`パース失敗: \n"${line}"`);
-                        return;
+                }
+                result.push(current.trim().replace(/^"|"$/g, "").replace(/^='(.*)'$/, "$1").replace(/^="(.+?)"$/, "$1"));
+                return result;
+            }
+
+            // カンマ等での区切り
+            const firstRow = splitCSVLine(lines[0]);
+            
+            // ヘッダー行判定
+            let hasHeader = false;
+            let roundIdx = firstRow.findIndex(h => h.includes("回") || h.toLowerCase().includes("round") || h.includes("号"));
+            let dateIdx = firstRow.findIndex(h => h.includes("日") || h.toLowerCase().includes("date") || h.includes("付"));
+            
+            if (roundIdx !== -1) {
+                hasHeader = true;
+            } else {
+                roundIdx = 0;
+                dateIdx = 1;
+            }
+
+            const parsedHistory = [];
+            const startIdx = hasHeader ? 1 : 0;
+
+            for (let i = startIdx; i < lines.length; i++) {
+                const row = splitCSVLine(lines[i]);
+                if (row.length < 3) continue;
+
+                const round = parseInt(row[roundIdx], 10);
+                if (isNaN(round)) continue;
+                
+                const date = dateIdx !== -1 && dateIdx < row.length ? row[dateIdx] : "";
+                let numbers = [];
+
+                if (hasHeader) {
+                    for (let p = 1; p <= 8; p++) {
+                        const idx = firstRow.findIndex(h => h.includes(`第${p}`) || h.includes(`マス${p}`));
+                        if (idx !== -1 && idx < row.length && row[idx]) {
+                            numbers.push(parseInt(row[idx], 10));
+                        }
                     }
-                    
-                    // 範囲チェック
+                }
+                
+                if (numbers.length !== 8) {
+                    const allRowNums = row.map(v => parseInt(v, 10)).filter(v => !isNaN(v) && v >= 1 && v <= 40);
+                    numbers = allRowNums.filter(v => v !== round).slice(0, 8);
+                }
+
+                if (numbers.length === 8 && !numbers.some(isNaN)) {
                     let rangeCheck = true;
                     for (let j = 0; j < 8; j++) {
                         const r = BINGO5_RANGES[j];
@@ -2000,26 +2159,56 @@
                             break;
                         }
                     }
-                    
-                    if (!rangeCheck) {
-                        alert(`数値の範囲が不正です (ビンゴ5): \n"${line}"`);
-                        return;
+                    if (rangeCheck) {
+                        parsedHistory.push({ round, date, numbers });
                     }
-                    
-                    newItems.push({
-                        round: roundNo,
-                        date: dateStr,
-                        numbers: numbers
-                    });
-                }
-                
-                if (newItems.length > 0) {
-                    saveMultipleUserHistoryToCache(newItems);
-                    alert(`${newItems.length} 件のデータを保存しました。`);
-                    closeImportModal();
-                    location.reload();
                 }
             }
+
+            if (parsedHistory.length === 0) {
+                throw new Error("有効な履歴レコードを読み込めませんでした。本数字の個数(8個)やマスごとの数値範囲がビンゴ5と一致しているかご確認ください。");
+            }
+
+            saveMultipleUserHistoryToCache(parsedHistory);
+            alert(`CSVから ${parsedHistory.length} 件の過去データをインポートしました！`);
+            closeImportModal();
+            location.reload();
+        }
+
+        function initCSVImport() {
+            const dropZone = document.getElementById("drop-zone");
+            const fileInput = document.getElementById("file-input");
+            if (!dropZone || !fileInput) return;
+            
+            const newDropZone = dropZone.cloneNode(true);
+            dropZone.parentNode.replaceChild(newDropZone, dropZone);
+            
+            const newFileInput = newDropZone.querySelector("#file-input");
+            
+            newDropZone.addEventListener("click", () => newFileInput.click());
+            
+            newDropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                newDropZone.classList.add("dragover");
+            });
+            
+            newDropZone.addEventListener("dragleave", () => {
+                newDropZone.classList.remove("dragover");
+            });
+            
+            newDropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                newDropZone.classList.remove("dragover");
+                if (e.dataTransfer.files.length > 0) {
+                    handleCSVFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            newFileInput.addEventListener("change", (e) => {
+                if (e.target.files.length > 0) {
+                    handleCSVFile(e.target.files[0]);
+                }
+            });
         }
     </script>
     <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b7f74bde365b4aa480344eac948b7e6b"}'></script><!-- End Cloudflare Web Analytics -->
