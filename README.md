@@ -1,5 +1,7 @@
 # ビンゴ5予想システムライト (BINGO5_PREDICTOR_LIGHT)
 
+> **🌐 ライブデプロイ (Web公開URL)**: [https://tk030-lotto.github.io/bingo5-predictor-lite/](https://tk030-lotto.github.io/bingo5-predictor-lite/)
+
 本プロジェクトは、過去の当選結果データを基に、JavaScriptを用いた多重指標（位置別EMA期待値、NPMI共起シナジー、合計値理論、奇偶・高低バランス、隣接差5）を用いて、期待値の高い組み合わせを厳選・分析する静的ウェブアプリケーション（シングルページアプリケーション）です。
 
 ---
