@@ -715,7 +715,11 @@
                 <h4>2. データ取得について</h4>
                 <p>・本ツールが利用する最新データは、統計解析の目的で公開データから抽出されたものであり、通信状態等の要因により実際の抽選結果と同期が遅れる場合があります。最終的な当選確認は、必ず主催者（みずほ銀行等）の公式発表で行ってください。</p>
             </div>
-            <button class="btn-main" onclick="agreeDisclaimer()">同意して利用を開始する</button>
+            <div class="disclaimer-consent-check" style="margin: 16px 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
+                <input type="checkbox" id="disclaimerConsentCheck" onchange="toggleDisclaimerButton()" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--cyan);">
+                <label for="disclaimerConsentCheck" style="cursor: pointer; user-select: none;">上記の利用規約・免責事項に同意します</label>
+            </div>
+            <button class="btn-main" id="agreeBtn" onclick="agreeDisclaimer()" disabled style="opacity: 0.5; cursor: not-allowed;">同意して利用を開始する</button>
         </div>
     </div>
 
@@ -1035,14 +1039,31 @@
         });
 
         function checkConsent() {
-            if (localStorage.getItem('bingo5_analyzer_consent') === 'true') {
+            if (sessionStorage.getItem('bingo5_analyzer_consent') === 'true') {
                 document.getElementById('disclaimerOverlay').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
             }
         }
 
+        function toggleDisclaimerButton() {
+            const check = document.getElementById('disclaimerConsentCheck');
+            const btn = document.getElementById('agreeBtn');
+            if (check && btn) {
+                btn.disabled = !check.checked;
+                if (check.checked) {
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                } else {
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+            }
+        }
+
         function agreeDisclaimer() {
-            localStorage.setItem('bingo5_analyzer_consent', 'true');
+            const check = document.getElementById('disclaimerConsentCheck');
+            if (!check || !check.checked) return;
+            sessionStorage.setItem('bingo5_analyzer_consent', 'true');
             document.getElementById('disclaimerOverlay').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
         }
