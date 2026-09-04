@@ -1,3 +1,4 @@
-# AI Developer Rules Pointer
-あなたへのすべての開発ルールとプロトコルは、プロジェクトルートの `SKILLS.md` および、各種情報内の `knowledge/protocol.md` に集約されています。
-作業を開始する前に必ず `SKILLS.md` と `knowledge/protocol.md` を読み込み、そこに記載された指示に必ず従ってください。
+﻿# AI Rules Pointer
+
+このプロジェクトのすべての開発ルール・行動規範は AI_RULES.md に一元管理されています。
+作業を開始する前に必ず AI_RULES.md を読み込み、記載されたすべての指示に従ってください。
