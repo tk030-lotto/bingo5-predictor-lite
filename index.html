@@ -717,6 +717,10 @@
                 <p>・本ツールが利用する最新データは、統計解析の目的で公開データから抽出されたものであり、通信状態等の要因により実際の抽選結果と同期が遅れる場合があります。最終的な当選確認は、必ず主催者（みずほ銀行等）の公式発表で行ってください。</p>
                 <h4>3. ライセンス</h4>
                 <p>・本ツールは MIT License のもとで提供されています。（Copyright (c) 2026 tk030）</p>
+                <h4>4. 外部通信について</h4>
+                <p>・本ツールは、ページ閲覧の統計把握のため Cloudflare Web Analytics を利用しており、閲覧情報が Cloudflare に送信されます。</p>
+                <p>・フォント表示のため Google Fonts を利用しており、フォントファイル取得時に Google へ通信が発生します。</p>
+                <p>・ページ読み込み時に自動的に、および「最新結果を自動同期」ボタンを押した場合に、ロトデータハブ（GitHub Pages 上の JSON）から最新の当選データを取得します。これら以外に、ツールが利用者の情報を外部へ送信する経路はありません。</p>
             </div>
             <div class="disclaimer-consent-check" style="margin: 16px 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
                 <input type="checkbox" id="disclaimerConsentCheck" onchange="toggleDisclaimerButton()" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--cyan);">
