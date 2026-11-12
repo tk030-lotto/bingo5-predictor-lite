@@ -64,6 +64,7 @@ def fetch_from_primary():
     df = clean_data(df)
     
     parsed_history = []
+    skipped_rows = 0
     
     for _, row in df.iterrows():
         try:
@@ -78,6 +79,7 @@ def fetch_from_primary():
                 numbers.append(num_val)
                 
             if len(numbers) != 8:
+                skipped_rows += 1
                 continue
                 
             parsed_history.append({
@@ -86,7 +88,11 @@ def fetch_from_primary():
                 "numbers": numbers
             })
         except Exception:
+            skipped_rows += 1
             continue
+            
+    if skipped_rows:
+        logger.warning(f"Skipped {skipped_rows} malformed rows while parsing the CSV.")
             
     parsed_history.sort(key=lambda x: x['round'], reverse=True)
     return parsed_history
