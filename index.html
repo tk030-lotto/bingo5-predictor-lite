@@ -877,7 +877,7 @@
                     <div class="setting-label">検証する回数（直近から遡る回数）</div>
                     <div class="setting-inputs">
                         <input type="number" id="backtest-rounds" class="setting-input" value="30" min="5" max="100">
-                        <button class="btn-main" onclick="runBacktest()" style="width: auto; padding: 10px 20px;">検証実行</button>
+                        <button class="btn-main" onclick="runBacktest()" id="btn-backtest-run" style="width: auto; padding: 10px 20px;">検証実行</button>
                     </div>
                 </div>
 
@@ -898,11 +898,11 @@
                     
                     <div class="backtest-summary">
                         <div class="bt-card">
-                            <span class="bt-lbl">生存プール完全保持率<br>(8個すべて捕捉)</span>
+                            <span class="bt-lbl">位置別捕捉率<br>(8マス全て当選数字を位置別に捕捉した回の割合)</span>
                             <span class="bt-val" id="bt-res-capture" style="color: var(--purple);">0.0%</span>
                         </div>
                         <div class="bt-card">
-                            <span class="bt-lbl">平均包含率<br>(8個中平均)</span>
+                            <span class="bt-lbl">平均包含率<br>(8マス中平均で当選数字を位置別に捕捉した割合)</span>
                             <span class="bt-val" id="bt-res-avg-contain" style="color: #fff;">0.0%</span>
                         </div>
                         <div class="bt-card" style="grid-column: span 2;">
@@ -1072,20 +1072,95 @@
         }
 
         // データの統合・マージ処理
+        // localStorage のキーを一箇所に集約する
+        const USER_HISTORY_STORAGE_KEY = 'bingo5_analyzer_user_history';
+
+        // 当選データ1件のスキーマ検証（回号・日付・8数の型と範囲を確認）
+        function isValidHistoryItem(item) {
+            if (!item || typeof item !== 'object') return false;
+            const round = Number(item.round);
+            if (!Number.isInteger(round) || round < 1) return false;
+            if (item.date !== undefined && typeof item.date !== 'string') return false;
+            const numbers = item.numbers;
+            if (!Array.isArray(numbers) || numbers.length !== 8) return false;
+            for (let i = 0; i < 8; i++) {
+                const n = Number(numbers[i]);
+                if (!Number.isInteger(n)) return false;
+                const r = BINGO5_RANGES[i];
+                if (n < r.min || n > r.max) return false;
+            }
+            return true;
+        }
+
+        // 履歴配列から有効な要素だけを残し、除外した件数を返す
+        function sanitizeHistoryArray(items) {
+            const valid = [];
+            let dropped = 0;
+            const list = Array.isArray(items) ? items : [];
+            for (const item of list) {
+                if (isValidHistoryItem(item)) {
+                    valid.push({
+                        round: Number(item.round),
+                        date: typeof item.date === 'string' ? item.date : '',
+                        numbers: item.numbers.map(n => Number(n))
+                    });
+                } else {
+                    dropped++;
+                }
+            }
+            return { valid, dropped };
+        }
+
+        // ユーザー履歴を localStorage から読み込み、サニタイズして返す
+        // dropped === -1 の場合は JSON.parse 不能（利用不能な保存データ）
+        function loadUserHistoryCache() {
+            const raw = localStorage.getItem(USER_HISTORY_STORAGE_KEY);
+            if (!raw) return { valid: [], dropped: 0 };
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch (e) {
+                console.error('Failed to parse user history cache', e);
+                return { valid: [], dropped: -1 };
+            }
+            return sanitizeHistoryArray(parsed);
+        }
+
+        // ユーザー履歴を localStorage へ回号 upsert で保存する（重複が蓄積しない）
+        // 失敗時は { ok: false, error } を返す
+        function persistUserHistoryCache(newItems) {
+            const { valid, dropped } = loadUserHistoryCache();
+            const map = new Map();
+            valid.forEach(item => map.set(item.round, item));
+            newItems.forEach(item => map.set(Number(item.round), item));
+            try {
+                localStorage.setItem(USER_HISTORY_STORAGE_KEY, JSON.stringify(Array.from(map.values())));
+                initHistoryData(); // 再ロードしてマージ
+                return { ok: true, dropped };
+            } catch (e) {
+                console.error('Failed to write user history cache', e);
+                return { ok: false, dropped, error: e };
+            }
+        }
+
         function initHistoryData() {
             let defaultData = [];
             if (typeof DEFAULT_BINGO5_DATA !== 'undefined') {
                 defaultData = DEFAULT_BINGO5_DATA || [];
             }
             
-            // localStorageからカスタム入力履歴を読み込み
-            let cachedData = [];
-            const userHistoryRaw = localStorage.getItem('bingo5_analyzer_user_history');
-            if (userHistoryRaw) {
-                try {
-                    cachedData = JSON.parse(userHistoryRaw) || [];
-                } catch (e) {
-                    console.error("Failed to parse user history cache", e);
+            // localStorageからカスタム入力履歴を読み込み（スキーマ検証つき）
+            const { valid: cachedData, dropped } = loadUserHistoryCache();
+            if (dropped !== 0) {
+                const msg = dropped === -1
+                    ? '保存データが破損していたため、ユーザー登録分を読み込めませんでした。'
+                    : `保存データから ${dropped} 件の不正なレコードを除外しました。`;
+                console.warn(msg);
+                const statusMsg = document.getElementById('sync-status-msg');
+                if (statusMsg) {
+                    statusMsg.style.display = 'block';
+                    statusMsg.style.color = 'var(--fail)';
+                    statusMsg.innerText = msg;
                 }
             }
             
@@ -1099,27 +1174,22 @@
         }
 
         function saveUserHistoryToCache(newItem) {
-            const userHistoryRaw = localStorage.getItem('bingo5_analyzer_user_history') || '[]';
-            let parsed = [];
-            try {
-                parsed = JSON.parse(userHistoryRaw);
-            } catch(e) {}
-            
-            parsed.push(newItem);
-            localStorage.setItem('bingo5_analyzer_user_history', JSON.stringify(parsed));
-            initHistoryData(); // 再ロードしてマージ
+            const { valid } = sanitizeHistoryArray([newItem]);
+            if (valid.length === 0) {
+                return { ok: false, error: new Error('登録データが無効です。') };
+            }
+            return persistUserHistoryCache(valid);
         }
 
         function saveMultipleUserHistoryToCache(items) {
-            const userHistoryRaw = localStorage.getItem('bingo5_analyzer_user_history') || '[]';
-            let parsed = [];
-            try {
-                parsed = JSON.parse(userHistoryRaw);
-            } catch(e) {}
-            
-            parsed = parsed.concat(items);
-            localStorage.setItem('bingo5_analyzer_user_history', JSON.stringify(parsed));
-            initHistoryData(); // 再ロードしてマージ
+            const { valid, dropped } = sanitizeHistoryArray(items);
+            if (dropped > 0) {
+                console.warn(`保存対象から ${dropped} 件の不正なレコードを除外しました。`);
+            }
+            if (valid.length === 0) {
+                return { ok: false, dropped, error: new Error('有効なレコードがありません。') };
+            }
+            return persistUserHistoryCache(valid);
         }
 
         // タブ切り替え
@@ -1667,12 +1737,21 @@
         //  バックテスト検証シミュレータ
         // ==========================================
         function runBacktest() {
+            // 実行中の再押下で複数シミュレーションが同一DOMを競合更新するのを防止する
+            const btButton = document.getElementById('btn-backtest-run');
+            if (btButton && btButton.disabled) return;
+            if (btButton) { btButton.disabled = true; btButton.style.opacity = '0.5'; btButton.style.cursor = 'not-allowed'; }
+            const reEnableButton = () => {
+                if (btButton) { btButton.disabled = false; btButton.style.opacity = ''; btButton.style.cursor = ''; }
+            };
+
             readFilterSettingsFromGUI();
             const history = activeHistory;
             const backtestRounds = parseInt(document.getElementById('backtest-rounds').value) || 30;
             
             if (history.length < backtestRounds + 2) {
                 alert(`データ件数が不足しています。検証には最低 ${backtestRounds + 2} 回分の過去結果が必要です。`);
+                reEnableButton();
                 return;
             }
             
@@ -1706,6 +1785,7 @@
                 if (roundIdx >= backtestRounds) {
                     // バックテスト完了時の集計処理
                     progressContainer.style.display = 'none';
+                    reEnableButton();
                     
                     const avgContain = (totalContainRate / backtestRounds) * 100;
                     const captureRate = (fullCaptured / backtestRounds) * 100;
@@ -1944,6 +2024,12 @@
         //  自動同期機能 (lotto-data-hub から取得)
         // ==========================================
         async function fetchLatestBingoData() {
+            const syncButton = document.getElementById('btn-sync-api');
+            if (syncButton && syncButton.disabled) return; // 実行中は再実行しない
+            if (syncButton) { syncButton.disabled = true; syncButton.style.opacity = '0.5'; syncButton.style.cursor = 'not-allowed'; }
+            const reEnableButton = () => {
+                if (syncButton) { syncButton.disabled = false; syncButton.style.opacity = ''; syncButton.style.cursor = ''; }
+            };
             const badge = document.getElementById("status-badge");
             const text = document.getElementById("status-text");
             const statusMsg = document.getElementById('sync-status-msg');
@@ -1963,13 +2049,34 @@
                 if (!response.ok) throw new Error(`HTTPエラー! status: ${response.status}`);
                 const data = await response.json();
                 if (Array.isArray(data) && data.length > 0) {
-                    const syncItems = data.map(item => ({
-                        round: parseInt(item.round),
-                        date: item.date || '',
-                        numbers: item.numbers.map(n => parseInt(n))
+                    // 受領データのスキーマ検証（不正レコードは除外し、利用しない）
+                    const rawItems = data.map(item => ({
+                        round: parseInt(item && item.round),
+                        date: item && item.date ? String(item.date) : '',
+                        numbers: item && Array.isArray(item.numbers) ? item.numbers.map(n => parseInt(n)) : []
                     }));
+                    const { valid: syncItems, dropped } = sanitizeHistoryArray(rawItems);
+                    if (dropped > 0) {
+                        console.warn(`同期データから ${dropped} 件の不正なレコードを除外しました。`);
+                    }
+                    if (syncItems.length === 0) {
+                        throw new Error("受領したデータが全て無効でした。");
+                    }
 
-                    saveMultipleUserHistoryToCache(syncItems);
+                    const saveResult = saveMultipleUserHistoryToCache(syncItems);
+                    if (!saveResult.ok) {
+                        if (badge && text) {
+                            badge.className = "status-badge";
+                            text.textContent = "オフライン (ローカル)";
+                        }
+                        if (statusMsg) {
+                            statusMsg.style.color = 'var(--fail)';
+                            statusMsg.innerText = "同期失敗: 最新データをローカル保存できませんでした（保存領域が不足している可能性があります）。オフラインデータを使用します。";
+                        }
+                        console.error('Failed to persist synced data', saveResult.error);
+                        reEnableButton();
+                        return;
+                    }
                     
                     if (badge && text) {
                         badge.className = "status-badge online";
@@ -1978,10 +2085,13 @@
                     if (statusMsg) {
                         const latestRound = syncItems[0].round;
                         statusMsg.style.color = 'var(--success)';
-                        statusMsg.innerText = `同期成功！最新 第 ${latestRound} 回までのデータを反映しました。`;
+                        statusMsg.innerText = dropped > 0
+                            ? `同期成功（${dropped} 件の不正データを除外）！最新 第 ${latestRound} 回までのデータを反映しました。`
+                            : `同期成功！最新 第 ${latestRound} 回までのデータを反映しました。`;
                         setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
                     }
                     renderExclusionBoard();
+                    reEnableButton();
                     console.log(`Successfully synced bingo5 with latest data.`);
                 } else {
                     throw new Error("受領したデータフォーマットが不正です。");
@@ -1996,6 +2106,7 @@
                     statusMsg.style.color = 'var(--fail)';
                     statusMsg.innerText = "同期失敗: " + err.message + "。オフラインデータを使用します。";
                 }
+                reEnableButton();
             }
         }
 
@@ -2067,7 +2178,11 @@
                     numbers: numbers
                 };
                 
-                saveUserHistoryToCache(newItem);
+                const result = saveUserHistoryToCache(newItem);
+                if (!result.ok) {
+                    alert('データの保存に失敗しました。ブラウザの保存領域が不足している可能性があります。\nエラー: ' + (result.error ? result.error.message : ''));
+                    return;
+                }
                 alert("データを保存しました。");
                 closeImportModal();
                 location.reload();
@@ -2156,14 +2271,15 @@
             }
 
             const parsedHistory = [];
+            let skippedRows = 0;
             const startIdx = hasHeader ? 1 : 0;
 
             for (let i = startIdx; i < lines.length; i++) {
                 const row = splitCSVLine(lines[i]);
-                if (row.length < 3) continue;
+                if (row.length < 3) { skippedRows++; continue; }
 
                 const round = parseInt(row[roundIdx], 10);
-                if (isNaN(round)) continue;
+                if (isNaN(round)) { skippedRows++; continue; }
                 
                 const date = dateIdx !== -1 && dateIdx < row.length ? row[dateIdx] : "";
                 let numbers = [];
@@ -2193,7 +2309,11 @@
                     }
                     if (rangeCheck) {
                         parsedHistory.push({ round, date, numbers });
+                    } else {
+                        skippedRows++;
                     }
+                } else {
+                    skippedRows++;
                 }
             }
 
@@ -2201,8 +2321,12 @@
                 throw new Error("有効な履歴レコードを読み込めませんでした。本数字の個数(8個)やマスごとの数値範囲がビンゴ5と一致しているかご確認ください。");
             }
 
-            saveMultipleUserHistoryToCache(parsedHistory);
-            alert(`CSVから ${parsedHistory.length} 件の過去データをインポートしました！`);
+            const saveResult = saveMultipleUserHistoryToCache(parsedHistory);
+            if (!saveResult.ok) {
+                alert('データの保存に失敗しました。ブラウザの保存領域が不足している可能性があります。\nエラー: ' + (saveResult.error ? saveResult.error.message : ''));
+                return;
+            }
+            alert(`CSVから ${parsedHistory.length} 件の過去データをインポートしました！${skippedRows > 0 ? `（${skippedRows} 件の行をスキップしました）` : ''}`);
             closeImportModal();
             location.reload();
         }
