@@ -15,3 +15,13 @@ SKILLS.md
 knowledge/
 RECORD.md
 
+
+# 内部運用ファイル（共通ルール）
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
+# 作業記録・レビュー成果物（公開対象外）
+PRIMARY-REVIEW-*.md
+implementation_plan.md
+walkthrough.md
